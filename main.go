@@ -49,7 +49,6 @@ func main() {
 			deb.Println(err)
 			continue
 		}
-		deb.Println("Set breakpoint", fn)
 	}
 
 	// Continue the initial pause.

@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"debug/gosym"
-	"encoding/binary"
 	"errors"
 	"log"
 	"os"
 	"syscall"
-	"unsafe"
 )
 
 var ErrorTableEmpty = errors.New("Process table should not be empty.")
@@ -18,7 +15,7 @@ type Process struct {
 	Path     string
 	Table    *gosym.Table
 	Pid      int
-	Original map[uint64]uint64
+	Original map[uint64]byte
 }
 
 // NewProcess starts a process and loads its sym table.
@@ -39,7 +36,7 @@ func NewProcess(path string) (*Process, error) {
 		return nil, err
 	}
 
-	p.Original = make(map[uint64]uint64)
+	p.Original = make(map[uint64]byte)
 	return &p, nil
 }
 
@@ -56,8 +53,7 @@ func (p *Process) FuncAddr(function string) (uint64, error) {
 }
 
 func (p *Process) SetBreakpoint(pid int, addr uint64) error {
-	var content, original uint64
-	var text = make([]byte, unsafe.Sizeof(content))
+	var text = []byte{0}
 
 	// Read the original data
 	_, err := syscall.PtracePeekText(pid, uintptr(addr), text)
@@ -65,47 +61,19 @@ func (p *Process) SetBreakpoint(pid int, addr uint64) error {
 		deb.Println(err)
 		return err
 	}
-	buf := bytes.NewBuffer(text)
-	content, err = binary.ReadUvarint(buf)
-	if err != nil {
-		deb.Fatal(err)
-	}
-	original = content
+
+	// Store the original data in the cache, useful when we want to
+	// clear the breakpoint
+	p.Original[addr] = text[0]
 
 	// Write the breakpoint, very specific to x86.
-	content = (content & 0xFFFFFF00) | 0xCC
-	binary.PutUvarint(text, content)
+	text = []byte{0xCC}
+
 	_, err = syscall.PtracePokeText(pid, uintptr(addr), text)
 	if err != nil {
 		deb.Println(err)
 		return err
 	}
-
-	// Store the original data in the cache, useful when we want to
-	// clear the breakpoint
-	p.Original[addr] = original
-	return nil
-}
-
-func (p *Process) ClearBreakpoint(pid int, addr uint64) error {
-	original, ok := p.Original[addr]
-	if !ok {
-		return BPDoesNotExist
-	}
-
-	var text = make([]byte, unsafe.Sizeof(original))
-	binary.PutUvarint(text, original)
-	_, err := syscall.PtracePokeText(pid, uintptr(addr), text)
-	if err != nil {
-		return err
-	}
-	err = syscall.PtraceCont(pid, 0)
-	if err != nil {
-		return err
-	}
-
-	// Remove the original breakpoint data
-	delete(p.Original, addr)
 
 	return nil
 }
@@ -128,7 +96,7 @@ func (p *Process) LogAndContinue(pid int) error {
 
 	err = p.ContinueBreakpoint(pid, pc-1)
 	if err != nil {
-		log.Println("Looks like this was not a break point")
+		log.Println("Continue break point", err)
 		return nil
 	}
 	return nil
@@ -137,29 +105,20 @@ func (p *Process) LogAndContinue(pid int) error {
 func (p *Process) ContinueBreakpoint(pid int, addr uint64) error {
 	err := p.ClearBreakpoint(pid, addr)
 	if err != nil {
+		deb.Println(err)
 		return err
 	}
 
 	regs := syscall.PtraceRegs{}
 	err = syscall.PtraceGetRegs(pid, &regs)
 	if err != nil {
+		deb.Println(err)
 		return err
 	}
-
 	regs.SetPC(uint64(addr))
 	err = syscall.PtraceSetRegs(pid, &regs)
 	if err != nil {
-		return err
-	}
-
-	err = syscall.PtraceSingleStep(pid)
-	if err != nil {
-		return err
-	}
-
-	var w syscall.WaitStatus
-	pid, err = syscall.Wait4(pid, &w, syscall.WALL, nil)
-	if err != nil {
+		deb.Println(err)
 		return err
 	}
 
@@ -167,6 +126,24 @@ func (p *Process) ContinueBreakpoint(pid int, addr uint64) error {
 	if err != nil {
 		deb.Fatal(err)
 	}
+	return nil
+}
+
+func (p *Process) ClearBreakpoint(pid int, addr uint64) error {
+	original, ok := p.Original[addr]
+	if !ok {
+		return BPDoesNotExist
+	}
+
+	var text = []byte{original}
+	_, err := syscall.PtracePokeText(pid, uintptr(addr), text)
+	if err != nil {
+		return err
+	}
+
+	// Remove the original breakpoint data
+	delete(p.Original, addr)
+
 	return nil
 }
 
