@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"debug/gosym"
-	"syscall"
-	"errors"
-	"unsafe"
 	"encoding/binary"
+	"errors"
 	"log"
 	"os"
+	"syscall"
+	"unsafe"
 )
 
 var ErrorTableEmpty = errors.New("Process table should not be empty.")
@@ -31,7 +31,7 @@ func NewProcess(path string) (*Process, error) {
 	}
 
 	attr := &syscall.ProcAttr{
-		Sys: &syscall.SysProcAttr{Ptrace: true},
+		Sys:   &syscall.SysProcAttr{Ptrace: true},
 		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
 	}
 	p.Pid, err = syscall.ForkExec(path, []string{path}, attr)
@@ -116,16 +116,16 @@ func (p *Process) LogAndContinue(pid int) error {
 		log.Println("Error fetching program counter", err)
 		return err
 	}
-	
+
 	_, ok := p.Original[pc-1]
 	if !ok {
 		log.Println("Looks like this was not a break point")
 		return err
 	}
-	
+
 	file, line, _ := p.Table.PCToLine(pc)
 	log.Printf("%s:%d\n", file, line)
-	
+
 	err = p.ContinueBreakpoint(pid, pc-1)
 	if err != nil {
 		log.Println("Looks like this was not a break point")
@@ -134,18 +134,18 @@ func (p *Process) LogAndContinue(pid int) error {
 	return nil
 }
 
-func (p *Process) ContinueBreakpoint(pid int, addr uint64) error{
+func (p *Process) ContinueBreakpoint(pid int, addr uint64) error {
 	err := p.ClearBreakpoint(pid, addr)
 	if err != nil {
 		return err
 	}
-	
+
 	regs := syscall.PtraceRegs{}
 	err = syscall.PtraceGetRegs(pid, &regs)
 	if err != nil {
 		return err
 	}
-	
+
 	regs.SetPC(uint64(addr))
 	err = syscall.PtraceSetRegs(pid, &regs)
 	if err != nil {
@@ -156,21 +156,21 @@ func (p *Process) ContinueBreakpoint(pid int, addr uint64) error{
 	if err != nil {
 		return err
 	}
-	
+
 	var w syscall.WaitStatus
 	pid, err = syscall.Wait4(pid, &w, syscall.WALL, nil)
 	if err != nil {
 		return err
 	}
-	
+
 	err = syscall.PtraceCont(pid, 0)
 	if err != nil {
 		deb.Fatal(err)
 	}
-	return nil	
+	return nil
 }
 
-func (p *Process) PC(pid int) (uint64, error){
+func (p *Process) PC(pid int) (uint64, error) {
 	regs := syscall.PtraceRegs{}
 	err := syscall.PtraceGetRegs(p.Pid, &regs)
 	if err != nil {

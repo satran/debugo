@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"debug/elf"
 	"debug/gosym"
+	"fmt"
+	"os"
 )
 
 func getTable(file string) (*gosym.Table, error) {
@@ -19,7 +19,7 @@ func getTable(file string) (*gosym.Table, error) {
 	}
 
 	pcln := gosym.NewLineTable(pclntab, textStart)
-	return gosym.NewTable(symtab, pcln)	
+	return gosym.NewTable(symtab, pcln)
 }
 
 func loadTables(f *os.File) (textStart uint64, textData, symtab, pclntab []byte, err error) {

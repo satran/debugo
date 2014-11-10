@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"syscall"
 	"runtime"
+	"syscall"
 )
 
 var deb *log.Logger
 
 func init() {
 	deb = log.New(os.Stdout, "", log.Lshortfile)
-	
+
 	// All ptrace calls must be made from the same thread that created the process
-	runtime.LockOSThread() 
+	runtime.LockOSThread()
 }
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 	if w.Exited() {
 		deb.Fatal("Process exited")
 	}
-	
+
 	for _, fn := range os.Args[2:] {
 		addr, err := p.FuncAddr(fn)
 		if err != nil {
@@ -51,13 +51,13 @@ func main() {
 		}
 		deb.Println("Set breakpoint", fn)
 	}
-	
+
 	// Continue the initial pause.
 	err = syscall.PtraceCont(pid, 0)
 	if err != nil {
 		deb.Fatal(err)
 	}
-	
+
 	for {
 		pid, err = syscall.Wait4(pid, &w, syscall.WALL, nil)
 		if err != nil {
