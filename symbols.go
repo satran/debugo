@@ -1,4 +1,4 @@
-package main
+package debugo
 
 import (
 	"debug/elf"

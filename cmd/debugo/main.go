@@ -4,17 +4,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"runtime"
-	"syscall"
+	"github.com/satran/debugo"
 )
 
 var deb *log.Logger
 
 func init() {
 	deb = log.New(os.Stdout, "", log.Lshortfile)
-
-	// All ptrace calls must be made from the same thread that created the process
-	runtime.LockOSThread()
 }
 
 func main() {
@@ -23,14 +19,12 @@ func main() {
 		usage()
 		return
 	}
-	p, err := NewProcess(os.Args[1])
+	p, err := debugo.New(os.Args[1])
 	if err != nil {
 		deb.Fatal(err)
 	}
 	// Wait for the intial call
-	var w syscall.WaitStatus
-	pid, err := syscall.Wait4(p.Pid, &w, syscall.WALL, nil)
-
+	pid, w, err := p.Wait()
 	if err != nil {
 		deb.Fatal(err)
 	}
@@ -52,20 +46,20 @@ func main() {
 	}
 
 	// Continue the initial pause.
-	err = syscall.PtraceCont(pid, 0)
+	err = p.Continue(pid)
 	if err != nil {
 		deb.Fatal(err)
 	}
 
 	for {
-		pid, err = syscall.Wait4(pid, &w, syscall.WALL, nil)
+		pid, w, err := p.Wait()
 		if err != nil {
 			deb.Fatal(err)
 		}
 		if w.Exited() {
 			deb.Fatal("Process exited")
 		}
-		err = p.LogAndContinue(pid)
+		err = p.Continue(pid)
 		if err != nil {
 			deb.Fatal(err)
 		}
