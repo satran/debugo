@@ -10,6 +10,7 @@ const (
 	C_WAIT = iota
 	C_BREAKPOINT
 	C_CONTINUE
+	C_PC
 )
 
 var (
@@ -109,4 +110,14 @@ func (c *Command) kontinue() {
 	}
 	
 	c.out <- nil
+}
+
+func (c *Command) pc() {
+	pid := c.args["pid"].(int)
+	pc, err := pc(pid)
+	if err != nil {
+		c.out <- err
+		return
+	}
+	c.out <- pc
 }

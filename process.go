@@ -127,3 +127,27 @@ func (p *Process) Continue(pid int) error {
 
 	return nil
 }
+
+
+func (p *Process) PC(pid int) (uint64, error) {
+	out := make(chan interface{})
+	comm := trace.New(
+		trace.C_PC,
+		trace.Args{
+			"pid": pid,
+		},
+		out,
+	)
+	p.in <- comm
+
+	resp := <-out
+
+	switch resp.(type) {
+	case error:
+		return 0, resp.(error)
+	case uint64:
+		return resp.(uint64), nil
+	}
+
+	return 0, UndefinedError
+}

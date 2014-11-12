@@ -47,5 +47,7 @@ func exec(c *Command) {
 		c.setbreakpoint()
 	case C_CONTINUE:
 		c.kontinue()
+	case C_PC:
+		c.pc()
 	}
 }
