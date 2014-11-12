@@ -66,7 +66,7 @@ func (p *Process) SetBreakpoint(pid int, addr uint64) error {
 	// clear the breakpoint
 	p.Original[addr] = text[0]
 
-	// Write the breakpoint, very specific to x86.
+	// Write the breakpoint, very specific to x86 the int 3 instruction.
 	text = []byte{0xCC}
 
 	_, err = syscall.PtracePokeText(pid, uintptr(addr), text)
