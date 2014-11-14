@@ -15,6 +15,7 @@ const (
 
 var (
 	NotBreakPointError = errors.New("cannot perform continue when break point was not set")
+	ProcessExitedError = errors.New("process exited before we could do anything")
 )
 
 var (
@@ -43,8 +44,8 @@ func New(method int, args Args, out chan interface{}) *Command {
 
 func (c *Command) wait() {
 	pid := c.args["pid"].(int)
-	var w syscall.WaitStatus
-	pid, err := syscall.Wait4(pid, &w, syscall.WALL, nil)
+	
+	pid, w, err := wait(pid)
 	if err != nil {
 		c.out <- err
 	} else {
@@ -59,30 +60,8 @@ func (c *Command) wait() {
 func (c *Command) setbreakpoint() {
 	pid := c.args["pid"].(int)
 	addr := c.args["addr"].(uint64)
-
-	var text = []byte{0}
-
-	// Read the original data
-	_, err := syscall.PtracePeekText(pid, uintptr(addr), text)
-	if err != nil {
-		c.out <- err
-		return
-	}
-
-	// Store the original data in the cache, useful when we want to
-	// clear the breakpoint
-	breakpoints[addr] = text[0]
-
-	// Write the breakpoint, very specific to x86 the int 3 instruction.
-	text = []byte{0xCC}
-
-	_, err = syscall.PtracePokeText(pid, uintptr(addr), text)
-	if err != nil {
-		c.out <- err
-		return
-	}
 	
-	c.out <- nil
+	c.out <- setbreakpoint(pid, addr)
 }
 
 
