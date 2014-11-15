@@ -154,3 +154,12 @@ func (p *Process) PC(pid int) (uint64, error) {
 
 	return 0, UndefinedError
 }
+
+// Files returns the source code of files, if any, that the process was created with.
+func (p *Process) Files() []string {
+	files := make([]string, 0, len(p.Table.Files))
+	for key := range p.Table.Files {
+		files = append(files, key)			
+	}
+	return files
+}
