@@ -24,7 +24,7 @@ func setbreakpoint(pid int, addr uint64) error {
 	if text[0] == 0xCC {
 		return nil
 	}
-	
+
 	// Store the original data in the cache, useful when we want to
 	// clear the breakpoint
 	breakpoints[addr] = text[0]
@@ -66,7 +66,7 @@ func continueBreakpoint(pid int, addr uint64) error {
 	if w.Exited() {
 		return ProcessExitedError
 	}
-	err =  setbreakpoint(pid, addr)	
+	err = setbreakpoint(pid, addr)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,6 @@ func clearBreakpoint(pid int, addr uint64) error {
 
 	return nil
 }
-
 
 func pc(pid int) (uint64, error) {
 	regs := syscall.PtraceRegs{}

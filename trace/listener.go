@@ -1,9 +1,9 @@
 package trace
 
 import (
+	"os"
 	"runtime"
 	"syscall"
-	"os"
 )
 
 // Listen starts the process and waits for messages to be send to the in chan. Ideally this
@@ -16,19 +16,19 @@ func Listen(in chan *Command, resp chan int, path string, args ...string) {
 		Sys:   &syscall.SysProcAttr{Ptrace: true},
 		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
 	}
-	
-	newargs := make([]string, 0, len(args) + 1)
+
+	newargs := make([]string, 0, len(args)+1)
 	newargs = append(newargs, path)
 	for _, arg := range args {
 		newargs = append(newargs, arg)
 	}
-	
+
 	pid, err := syscall.ForkExec(path, newargs, attr)
 	if err != nil {
 		resp <- -1
 		return
 	}
-	
+
 	resp <- pid
 
 	for comm := range in {

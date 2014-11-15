@@ -1,8 +1,8 @@
 package trace
 
 import (
-	"syscall"
 	"errors"
+	"syscall"
 )
 
 // Declarations of all commands that the exec accepts
@@ -37,21 +37,21 @@ func init() {
 func New(method int, args Args, out chan interface{}) *Command {
 	return &Command{
 		method: method,
-		args: args,
-		out: out,
+		args:   args,
+		out:    out,
 	}
 }
 
 func (c *Command) wait() {
 	pid := c.args["pid"].(int)
-	
+
 	pid, w, err := wait(pid)
 	if err != nil {
 		c.out <- err
 	} else {
 		args := Args{
-			"pid": pid,
-			"status":  w,
+			"pid":    pid,
+			"status": w,
 		}
 		c.out <- args
 	}
@@ -60,10 +60,9 @@ func (c *Command) wait() {
 func (c *Command) setbreakpoint() {
 	pid := c.args["pid"].(int)
 	addr := c.args["addr"].(uint64)
-	
+
 	c.out <- setbreakpoint(pid, addr)
 }
-
 
 func (c *Command) kontinue() {
 	pid := c.args["pid"].(int)
@@ -78,7 +77,7 @@ func (c *Command) kontinue() {
 		// The break was not from one of our registered breakpoints. Lets just continue
 		err = syscall.PtraceCont(pid, 0)
 		c.out <- err
-		return 
+		return
 
 	}
 
@@ -87,7 +86,7 @@ func (c *Command) kontinue() {
 		c.out <- err
 		return
 	}
-	
+
 	c.out <- nil
 }
 

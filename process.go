@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	UndefinedError = errors.New("method send undefined response")
+	UndefinedError  = errors.New("method send undefined response")
 	TableEmptyError = errors.New("symbol table was empty")
 )
 
@@ -17,12 +17,12 @@ type Process struct {
 	Path  string
 	Table *gosym.Table
 
-	in  chan *trace.Command
-	pid int   // the main process id after the fork and exec
-	err error // sets any exception that was raised initially during creation of process.
+	in  chan *trace.Command // the channel used to communicate with the goroutine that runs the debugee.
+	pid int                 // the main process id after the fork and exec
+	err error               // sets any exception that was raised initially during creation of process.
 }
 
-// New starts a new Process executing the command given in path with the given arguments.
+// New starts the debugee.
 func New(path string, args ...string) (*Process, error) {
 	p := Process{Path: path}
 	var err error
@@ -46,6 +46,7 @@ func New(path string, args ...string) (*Process, error) {
 	return &p, nil
 }
 
+// Wait is a nice wrapper over the syscall Wait4.
 func (p *Process) Wait() (int, syscall.WaitStatus, error) {
 	out := make(chan interface{})
 	comm := trace.New(
@@ -85,6 +86,7 @@ func (p *Process) FuncAddr(function string) (uint64, error) {
 	return fn.Entry, nil
 }
 
+// SetBreakpoint sets the break point on the given address.
 func (p *Process) SetBreakpoint(pid int, addr uint64) error {
 	out := make(chan interface{})
 	comm := trace.New(
@@ -107,6 +109,7 @@ func (p *Process) SetBreakpoint(pid int, addr uint64) error {
 	return nil
 }
 
+// Continue resumes execution after a break point has been reached.
 func (p *Process) Continue(pid int) error {
 	out := make(chan interface{})
 	comm := trace.New(
@@ -128,7 +131,7 @@ func (p *Process) Continue(pid int) error {
 	return nil
 }
 
-
+// PC returns the current address of execution.
 func (p *Process) PC(pid int) (uint64, error) {
 	out := make(chan interface{})
 	comm := trace.New(

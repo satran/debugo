@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/satran/debugo"
+	"io"
 	"log"
 	"os"
-	"io"
+	
+	"github.com/satran/debugo"	
 )
 
 var deb *log.Logger
@@ -44,7 +45,7 @@ func main() {
 	if err != nil {
 		deb.Fatal(err)
 	}
-		
+
 	// Continue the initial pause.
 	err = p.Continue(pid)
 	if err != nil {
