@@ -1,134 +1,58 @@
 package main
 
 import (
-	"bytes"
+
 	"fmt"
-	"io"
+
 	"log"
-	"os"
+
+	"flag"
+	"net/http"
 	
-	"github.com/satran/debugo"	
+	"github.com/satran/debugo/cmd/debugo/static"
 )
 
-var deb *log.Logger
-var lines map[string]int
-
-func init() {
-	deb = log.New(os.Stdout, "", log.Lshortfile)
-	lines = make(map[string]int)
+var staticFiles = map[string]string {
+	"underscore.js": static.Underscore,
+	"backbone.js": static.Backbone,
+	"base.js": static.Base,
+	"base.css": static.Css,
 }
 
 func main() {
-	var err error
-	if len(os.Args) < 2 {
-		usage()
+	var host string
+	flag.StringVar(&host, "host", "localhost:8000", 
+		"address and port to which the server should listen to")
+	flag.Parse()
+	
+	ws := NewSocketServer()
+	
+	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/s/", staticHandler)
+	http.HandleFunc("/ws", ws.Handle)
+
+	log.Fatal(http.ListenAndServe(host, nil))
+
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, static.Index)
+}
+
+func staticHandler(w http.ResponseWriter, r *http.Request) {
+	file := r.URL.Path[len("/s/"):]
+	var t string
+	switch file {
+	case "base.css":
+		t = "text/css; charset=utf-8"
+	default:
+		t = "application/x-javascript"
+	}
+	
+	content, ok := staticFiles[file]
+	if !ok {
 		return
 	}
-	p, err := debugo.New(os.Args[1])
-	if err != nil {
-		deb.Fatal(err)
-	}
-	// Wait for the intial call
-	pid, w, err := p.Wait()
-	if err != nil {
-		deb.Fatal(err)
-	}
-	if w.Exited() {
-		deb.Fatal("Process exited")
-	}
-
-	addr, err := p.FuncAddr("main.main")
-	if err != nil {
-		deb.Fatal(err)
-	}
-	err = p.SetBreakpoint(pid, addr)
-	if err != nil {
-		deb.Fatal(err)
-	}
-
-	// Continue the initial pause.
-	err = p.Continue(pid)
-	if err != nil {
-		deb.Fatal(err)
-	}
-
-	for {
-		pid, w, err := p.Wait()
-		if err != nil {
-			deb.Fatal(err)
-		}
-
-		if w.Exited() {
-			deb.Fatal("Process exited")
-		}
-
-		pc, err := p.PC(pid)
-		if err != nil {
-			deb.Fatal(err)
-		}
-		file, line, _ := p.Table.PCToLine(pc)
-		fmt.Printf("%s:%d\n", file, line)
-		markNextLine(pid, p, file, line)
-		err = p.Continue(pid)
-		if err != nil {
-			deb.Fatal(err)
-		}
-	}
-}
-
-func usage() {
-	fmt.Println("Usage: %s <child_process>", os.Args[0])
-}
-
-func markNextLine(pid int, p *debugo.Process, file string, line int) {
-	next := line
-	for {
-		next++
-		maximum, err := getLines(file)
-		if err != nil {
-			deb.Println(err)
-			return
-		}
-		if next > maximum {
-			return
-		}
-		pc, _, err := p.Table.LineToPC(file, next)
-		if err != nil {
-			continue
-		}
-		err = p.SetBreakpoint(pid, pc)
-		if err != nil {
-			deb.Fatal(err)
-		}
-		return
-	}
-}
-
-func getLines(file string) (int, error) {
-	n, ok := lines[file]
-	if ok {
-		return n, nil
-	}
-	r, err := os.Open(file)
-	if err != nil {
-		return 0, err
-	}
-	buf := make([]byte, 8196)
-	count := 0
-	lineSep := []byte{'\n'}
-
-	for {
-		c, err := r.Read(buf)
-		if err != nil && err != io.EOF {
-			return count, err
-		}
-
-		count += bytes.Count(buf[:c], lineSep)
-
-		if err == io.EOF {
-			break
-		}
-	}
-	lines[file] = count
-	return count, nil
+	w.Header().Set("Content-Type", t)
+	fmt.Fprintf(w, content)
 }
