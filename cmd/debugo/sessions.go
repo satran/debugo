@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"log"
+	
+	"github.com/satran/debugo"
 )
 
 type Session struct {
@@ -10,6 +12,7 @@ type Session struct {
 
 	input  chan []byte      //Channel that listens to inputs from various clients
 	output chan interface{} // a channel where commands push result into
+	process *debugo.Process
 }
 
 func NewSession() *Session {

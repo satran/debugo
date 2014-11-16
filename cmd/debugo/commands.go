@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"regexp"
-	"strings"	
+	"io/ioutil"
+	
+	"github.com/satran/debugo"
 )
 
 type Command struct {
@@ -25,32 +27,57 @@ var cmdRegex = regexp.MustCompile("'.+'|\".+\"|\\S+")
 func init() {
 	registered = map[string]func(*Session, string, ...string) {
 		"run": run,
+		"getfile": getfile,
 	}
 }
 
-func (c *Command) Exec(s *Session) {
-	args := strings.Split(c.Command, " ")
-	if len(args) < 1 {
-		return
-	}
-	
-	command := args[0]
-	args = args[1:]
-	
-	fn, ok := registered[command]
+func (c *Command) Exec(s *Session) {	
+	fn, ok := registered[c.Command]
 	if !ok {
-		error(s, c.Id, "Unregistered command.")
+		sendError(s, c.Id, "Unregistered command.")
 		return
 	}
-	fn(s, c.Id, args...)
+	fn(s, c.Id, c.Args...)
 }
 
 func run(s *Session, id string, args ...string) {
-	fmt.Println(id, args)
+	fmt.Println("run", args)
+	var err error
+	if s.process != nil {
+		return
+	}
+	s.process, err = debugo.New(args[0], args[1:]...)
+	if err != nil {
+		sendError(s, "", err.Error())
+		return
+	}
+	files := s.process.Files()
+	cmd := Command {
+		Command: "popFiles",
+		Args: files,
+	}
+	s.output <- cmd	
 }
 
-func error(s *Session, id string, args ...string) {
+func getfile(s *Session, id string, args ...string) {
+	fmt.Println("getfile", args)
+	content, err := ioutil.ReadFile(args[0])
+	if err != nil {
+		fmt.Println(err)
+		sendError(s, id, err.Error())
+		return
+	}
+	
+	cmd := Command {
+		Command: "getfile",
+		Id: id,
+		Args: []string{string(content)},
+	}
+	s.output <- cmd	
+}
+func sendError(s *Session, id string, args ...string) {
 	cmd := Command{
+		Id: id,
 		Command: "error",
 		Args: args,
 	}
