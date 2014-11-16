@@ -1,0 +1,31 @@
+package static
+
+var Index = `
+<!doctype html>
+<head>
+	<link rel="stylesheet" href="/base.css" />
+	<title>Debugo</title>
+</head>
+
+<body>
+
+	<div class="sidebar" id="filesystem"></div>
+	<div id="files">
+		<div id="content"></div>
+		<input class="bar" id="cmd" />
+	</div>
+	<div class="sidebar" id="variables"></div>
+	
+
+	<script type="text/template" id="tmpl-"></script>
+	<script src="/jquery.js"></script>
+	<script src="/underscore.js"></script>
+	<script src="/backbone.js"></script>
+	<script src="/base.js"></script>
+	<script>
+		$(document).ready(function(){
+			a =	new App();
+		});
+	</script>
+</body>
+`

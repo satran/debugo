@@ -32,7 +32,7 @@ func (s *Session) listenInput() {
 		message := <-s.input
 		cmd := Command{}
 		if err := json.Unmarshal(message, &cmd); err != nil {
-			log.Println("Can't decode", err)
+			log.Println("Can't decode", err, message)
 			continue
 		}
 		go cmd.Exec(s)

@@ -1,0 +1,56 @@
+package static
+
+var Css = `
+body,p,div,span,li,ul{
+	margin:0;
+	padding:0;
+}
+body {
+	background: #FFFFEA;
+	font-family: monospace;
+}
+
+.sidebar {
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	background: #EAFFFF;
+	width: 300px;
+	height: 100%;
+	overflow: auto;
+	padding: 1em;
+}
+
+#filesystem {
+	left: 0;
+	border-right: 1px solid #ccc;	
+}
+
+#files {
+	margin: 0 calc(300px + 2em);
+}
+
+#variables {
+	right: 0;
+	border-left: 1px solid #ccc;
+}
+#cmd {
+	position: fixed;
+	left: calc(300px + 2em);
+	right: calc(300px + 2em);
+	bottom: 0;
+	padding: 0;
+	color: #FFF;
+	border: 1px solid #3c3c3c;
+	font-family: monospace;
+	background: #3C3C3C;
+	display: block;
+}
+#cmd:focus{
+	border: 1px solid red;
+}
+#content {
+	padding: 1em;
+	margin: 2em 0;
+}
+`
