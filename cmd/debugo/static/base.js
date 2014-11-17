@@ -135,10 +135,13 @@ var Connection = {
 
 
 var FileContentView = Backbone.View.extend({
-	tagName: "pre",
+	tagName: "table",
 
 	render: function() {
-		this.$el.html(this.model.content);
+		var lines = this.model.content.split("\n");
+		for (var i=1; i<=lines.length; i++) {
+			this.$el.append('<tr><td class="lineno">' + i + '</td><td class="linetext">' + lines[i] + '</td></tr>')
+		}
 		return this;
 	}
 });
@@ -160,7 +163,9 @@ var FileView = Backbone.View.extend({
 	
 	detailed: function() {
 		if (this.model.content !== undefined) {
-			this.view = new FileContentView({model: this.model});
+			if (this.view === undefined) {
+				this.view = new FileContentView({model: this.model});		
+			}
 			this.$container.html(this.view.render().el);
 		} else {
 			this.model.getContent(this.detailed.bind(this));
