@@ -1,4 +1,4 @@
-body,p,div,span,li,ul{
+body,p,div,span,li,ul,td,tr,table{
 	margin:0;
 	padding:0;
 }
@@ -58,6 +58,7 @@ body {
 }
 .lineno{
 	text-align: right;
+	vertical-align: top;
 	padding: 0 .5em;
 }
 .lineno.bp{
@@ -65,6 +66,9 @@ body {
 	color: #FFF;
 	border-radius: .5em;
 }
-.linetext:hover {
+.lineno:hover,.linetext:hover {
 	background: rgba(230, 230, 211, 1);
+}
+.linetext{
+	white-space: pre-wrap;
 }

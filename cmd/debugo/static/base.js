@@ -136,11 +136,13 @@ var Connection = {
 
 var FileContentView = Backbone.View.extend({
 	tagName: "table",
+	
+	template: _.template($("#tmpl-file").html()),
 
 	render: function() {
 		var lines = this.model.content.split("\n");
 		for (var i=1; i<=lines.length; i++) {
-			this.$el.append('<tr><td class="lineno">' + i + '</td><td class="linetext">' + lines[i] + '</td></tr>')
+			this.$el.append(this.template({line: lines[i], number: i}));
 		}
 		return this;
 	}
