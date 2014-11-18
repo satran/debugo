@@ -15,7 +15,10 @@
 	
 
 	<script type="text/template" id="tmpl-file">
-		<tr><td class="lineno"><%- number %></td><td class="linetext"><%- line %></td></tr>
+		<tr>
+			<td class="lineno line<%- number %>"><%- number %></td>
+			<td class="linetext textlineno<%- number %>"><%- line %></td>
+		</tr>
 	</script>
 	<script type="text/template" id="tmpl-"></script>
 	<script src="/jquery.js"></script>

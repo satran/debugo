@@ -11,7 +11,7 @@ body {
 	position: fixed;
 	top: 0;
 	bottom: 0;
-	background: #EAFFFF;
+	background: #FFFFFF;
 	width: 300px;
 	height: 100%;
 	overflow: auto;
@@ -20,7 +20,7 @@ body {
 
 #filesystem {
 	left: 0;
-	border-right: 1px solid #ccc;	
+	border-right: 1px solid #000;	
 }
 #filesystem>div{
 	margin-bottom: 4em;
@@ -31,7 +31,7 @@ body {
 
 #variables {
 	right: 0;
-	border-left: 1px solid #ccc;
+	border-left: 1px solid #000;
 }
 #cmd {
 	position: fixed;
@@ -39,14 +39,13 @@ body {
 	right: calc(300px + 2em);
 	bottom: 0;
 	padding: 0;
-	color: #FFF;
-	border: 1px solid #3c3c3c;
+	border: 1px solid #DBDBB6;
 	font-family: monospace;
-	background: #3C3C3C;
+	background: #DBDBB6;
 	display: block;
 }
 #cmd:focus{
-	border: 1px solid red;
+	border: 1px solid #956b8e;
 }
 #content {
 	padding: 1em;
@@ -56,19 +55,26 @@ body {
 	background: none repeat scroll 0% 0% rgba(190, 255, 255, 1);
 	cursor: default;
 }
+.file.highlight {
+	border: 1px solid black;
+}
 .lineno{
 	text-align: right;
 	vertical-align: top;
 	padding: 0 .5em;
+	cursor: default;
 }
 .lineno.bp{
-	background: #3A869B;
+	background: #956b8e;
 	color: #FFF;
 	border-radius: .5em;
 }
 .lineno:hover,.linetext:hover {
-	background: rgba(230, 230, 211, 1);
+	background: #DBDBB6;
 }
 .linetext{
 	white-space: pre-wrap;
+}
+.linetext.highlight {
+	background: #DBDBB6;
 }

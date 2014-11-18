@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"io/ioutil"
+	"strings"
+	"strconv"
 	
 	"github.com/satran/debugo"
 )
@@ -28,6 +30,8 @@ func init() {
 	registered = map[string]func(*Session, string, ...string) {
 		"run": run,
 		"getfile": getfile,
+		"b": breakpoint,
+		"c": kontinue,
 	}
 }
 
@@ -80,6 +84,83 @@ func sendError(s *Session, id string, args ...string) {
 		Id: id,
 		Command: "error",
 		Args: args,
+	}
+	s.output <- cmd
+}
+
+func breakpoint(s *Session, id string, args ...string) {
+	for _, arg := range args {
+		// We make an assumption that the argument will be file_name:line_number
+		params := strings.Split(arg, ":")
+		if len(params) != 2 {
+			continue
+		}
+		file := params[0]
+		line, err := strconv.Atoi(params[1])
+		if err != nil {
+			continue
+		}
+		
+		pc, err := s.process.LineAddr(file, line)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		
+		err = s.process.SetBreakpoint(s.process.Pid, pc)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		cmd := Command {
+			Id: id,
+			Command: "b",
+			Args: []string{
+				file,
+				fmt.Sprintf("%d", line),
+			},
+		}
+		s.output <- cmd
+	}
+}
+
+func kontinue(s *Session, id string, args ...string) {
+	err := s.process.Continue(s.process.Pid)
+	if err != nil {
+		fmt.Println(err)
+		sendError(s, id, err.Error())
+		return
+	}
+	
+	// Lets wait for signals from the process.
+	pid, w, err := s.process.Wait()
+	if err != nil {
+		fmt.Println(err)
+		sendError(s, id, err.Error())
+		return
+	}
+	
+	if w.Exited() {
+		cmd := Command {
+			Command: "exited",
+		}
+		s.output <- cmd
+		return
+	}
+	
+	file, line, err := s.process.CurrentPosition(pid)
+	if err != nil {
+		fmt.Println(err)
+		sendError(s, id, err.Error())
+		return
+	}
+	
+	cmd := Command {
+		Command: "paused",
+		Args: []string{
+			file,
+			fmt.Sprintf("%d", line),
+		},
 	}
 	s.output <- cmd
 }

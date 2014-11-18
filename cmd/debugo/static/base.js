@@ -137,18 +137,54 @@ var Connection = {
 var FileContentView = Backbone.View.extend({
 	tagName: "table",
 	
+	events: {
+		"click .lineno": "setbreakpoint"
+	},
+	
 	template: _.template($("#tmpl-file").html()),
+	
+	initialize: function(){
+		this.model.contentview = this;
+	},
 
 	render: function() {
 		var lines = this.model.content.split("\n");
-		for (var i=1; i<=lines.length; i++) {
-			this.$el.append(this.template({line: lines[i], number: i}));
+		for (var i=0; i<=lines.length; i++) {
+			this.$el.append(this.template({line: lines[i], number: i+1}));
 		}
 		return this;
+	},
+	
+	setbreakpoint: function(e) {
+		var line = e.target.innerHTML;
+		if (line == "") {
+			return;
+		}
+		var comm = Connection.commands.register("b", [this.model.id + ":" + line]);
+		comm.callback = this.markbreakpoint.bind(this);
+		Connection.send(comm.export());
+	},
+	
+	markbreakpoint: function(comm) {
+		var args = comm.export().Args;
+		// The response is [filename, lineno]
+		if (this.model.id !== args[0]) {
+			console.log("Files are not the same.")
+			return
+		}
+		var lineno = args[1];
+		var el = this.$el.find(".line" + lineno);
+		el.addClass("bp");
+	},
+	
+	highlight: function(line) {
+		this.$el.find(".highlight").removeClass("highlight");
+		var el = this.$el.find(".textlineno" + line);
+		el.addClass("highlight");
 	}
 });
 
-var FileView = Backbone.View.extend({
+var FileNameView = Backbone.View.extend({
 	tagName: "p",
 	
 	className: "file",
@@ -157,6 +193,10 @@ var FileView = Backbone.View.extend({
 	
 	events: {
 		"click": "detailed"
+	},
+	
+	initialize: function(){
+		this.model.nameview = this;
 	},
 	
 	render: function(){
@@ -172,6 +212,11 @@ var FileView = Backbone.View.extend({
 		} else {
 			this.model.getContent(this.detailed.bind(this));
 		}
+	},
+	
+	highlight: function() {
+		this.$el.find(".highlight").removeClass("highlight");
+		this.$el.addClass("highlight");
 	}
 });
 
@@ -189,7 +234,7 @@ var FileListView = Backbone.View.extend({
 	},
 	
 	addOne: function(file) {
-		var view = new FileView({model: file});
+		var view = new FileNameView({model: file});
 		view.render();
 		this.$el.append(view.el);	
 	}
@@ -207,6 +252,7 @@ var CommandView = Backbone.View.extend({
 		// return
 		if (e.which === 13) {
 			this.send(this.$el.val());
+			this.$el.val("");
 		}
 	}, 
 	
@@ -226,6 +272,8 @@ var App = Backbone.View.extend({
 	initialize: function(){
 		Connection.init();
 		Connection.register(this, this.popFiles, "popFiles");
+		Connection.register(this, this.paused, "paused");
+		Connection.register(this, this.exited, "exited");
 		Connection.register(this, this.error, "error");
 		this.cmdbar = new CommandView();
 	},
@@ -243,10 +291,24 @@ var App = Backbone.View.extend({
 		this.files = new FileList();
 		this.files.populate(cmd.export().Args);
 		this.fileView = new FileListView({model: this.files});
-		$("#filesystem").html(this.fileView.render().el);
+		$("#filesystem").html(this.fileView.el);
 	},
 	
 	error: function(args) {
 		_.each(args, function(arg) {console.log(arg);});
+	}, 
+	
+	paused: function(cmd) {
+		var obj = cmd.export();
+		var file = this.fileView.model.get(obj.Args[0]);
+		var nameView = file.nameview;
+		var contentView = file.contentview;
+		$("#content").html(contentView.el);
+		contentView.highlight(obj.Args[1]);
+		nameView.highlight();
+	}, 
+	
+	exited: function(cmd) {
+		alert("Hurrah! The command completed.");
 	}
 });
