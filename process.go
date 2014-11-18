@@ -4,6 +4,9 @@ import (
 	"debug/gosym"
 	"errors"
 	"syscall"
+	"runtime"
+	"strings"
+	"fmt"
 
 	"github.com/satran/debugo/trace"
 )
@@ -16,9 +19,9 @@ var (
 type Process struct {
 	Path  string
 	Table *gosym.Table
+	Pid int                 // the main process id after the fork and exec
 
 	in  chan *trace.Command // the channel used to communicate with the goroutine that runs the debugee.
-	pid int                 // the main process id after the fork and exec
 	err error               // sets any exception that was raised initially during creation of process.
 }
 
@@ -41,7 +44,7 @@ func New(path string, args ...string) (*Process, error) {
 		return nil, errors.New("Process did not start.")
 	}
 
-	p.pid = pid
+	p.Pid = pid
 
 	return &p, nil
 }
@@ -52,7 +55,7 @@ func (p *Process) Wait() (int, syscall.WaitStatus, error) {
 	comm := trace.New(
 		trace.C_WAIT,
 		trace.Args{
-			"pid": p.pid,
+			"pid": p.Pid,
 		},
 		out,
 	)
@@ -84,6 +87,19 @@ func (p *Process) FuncAddr(function string) (uint64, error) {
 		return 0, nil
 	}
 	return fn.Entry, nil
+}
+
+// LineAddr returns the virtual address of a line number in a file
+func (p *Process) LineAddr(file string, line int) (uint64, error) {
+	if p.Table == nil {
+		return 0, TableEmptyError
+	}
+
+	pc, _, err := p.Table.LineToPC(file, line)
+	if err != nil {
+		return 0, err
+	}
+	return pc, nil
 }
 
 // SetBreakpoint sets the break point on the given address.
@@ -157,9 +173,24 @@ func (p *Process) PC(pid int) (uint64, error) {
 
 // Files returns the source code of files, if any, that the process was created with.
 func (p *Process) Files() []string {
+	root := runtime.GOROOT()
 	files := make([]string, 0, len(p.Table.Files))
 	for key := range p.Table.Files {
+		if strings.HasPrefix(key, root) {
+			continue
+		}
 		files = append(files, key)			
 	}
+	fmt.Println(files)
 	return files
+}
+
+// CurrentPosition returns the file and line number the process is currently paused on.
+func (p *Process) CurrentPosition(pid int) (string, int, error){
+	pc, err := p.PC(pid)
+	if err != nil {
+		return "", 0, nil
+	}
+	file, line, _ := p.Table.PCToLine(pc)
+	return file, line, nil
 }
