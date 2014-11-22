@@ -135,22 +135,27 @@ var Connection = {
 
 
 var FileContentView = Backbone.View.extend({
-	tagName: "table",
-	
+	className: "filecontent",
+		
 	events: {
 		"click .lineno": "setbreakpoint"
 	},
 	
-	template: _.template($("#tmpl-file").html()),
+	template: _.template($("#tmpl-file-content").html()),
+	templateline: _.template($("#tmpl-line").html()),
+	$table: function() {
+		return this.$el.find("table");
+	},
 	
 	initialize: function(){
 		this.model.contentview = this;
 	},
 
 	render: function() {
+		this.$el.html(this.template({name: this.model.id}));
 		var lines = this.model.content.split("\n");
 		for (var i=0; i<=lines.length; i++) {
-			this.$el.append(this.template({line: lines[i], number: i+1}));
+			this.$table().append(this.templateline({line: lines[i], number: i+1}));
 		}
 		return this;
 	},
@@ -189,7 +194,7 @@ var FileNameView = Backbone.View.extend({
 	
 	className: "file",
 	
-	$container: $("#content"),
+	$container: $("#editor"),
 	
 	events: {
 		"click": "detailed"
@@ -220,7 +225,9 @@ var FileNameView = Backbone.View.extend({
 	}
 });
 
-var FileListView = Backbone.View.extend({	
+var FileListView = Backbone.View.extend({
+	className: 'out',
+		
 	initialize: function(){
 		this.render();
 	},
@@ -291,11 +298,19 @@ var App = Backbone.View.extend({
 		this.files = new FileList();
 		this.files.populate(cmd.export().Args);
 		this.fileView = new FileListView({model: this.files});
-		$("#filesystem").html(this.fileView.el);
+		$("#output").append(this.fileView.el);
 	},
 	
-	error: function(args) {
-		_.each(args, function(arg) {console.log(arg);});
+	error: function(cmd) {
+		var command = cmd.export();
+		if (command.Command !== undefined && command.Command !== ""){
+			$("#output").append('<div class="out"><p class="title">' + 
+				command.Command + '</p>');
+		}
+		_.each(command.Args, function(arg) {
+			$("#output").append('<p class="error">' + arg + '</p></div>');
+		});
+		
 	}, 
 	
 	paused: function(cmd) {
@@ -303,7 +318,7 @@ var App = Backbone.View.extend({
 		var file = this.fileView.model.get(obj.Args[0]);
 		var nameView = file.nameview;
 		var contentView = file.contentview;
-		$("#content").html(contentView.el);
+		$("#editor").html(contentView.el);
 		contentView.highlight(obj.Args[1]);
 		nameView.highlight();
 	}, 
