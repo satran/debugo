@@ -98,18 +98,21 @@ func breakpoint(s *Session, id string, args ...string) {
 		file := params[0]
 		line, err := strconv.Atoi(params[1])
 		if err != nil {
+			sendError(s, id, err.Error())
 			continue
 		}
 		
 		pc, err := s.process.LineAddr(file, line)
 		if err != nil {
 			fmt.Println(err)
+			sendError(s, id, err.Error())
 			continue
 		}
 		
 		err = s.process.SetBreakpoint(s.process.Pid, pc)
 		if err != nil {
 			fmt.Println(err)
+			sendError(s, id, err.Error())
 			continue
 		}
 		cmd := Command {
@@ -141,10 +144,7 @@ func kontinue(s *Session, id string, args ...string) {
 	}
 	
 	if w.Exited() {
-		cmd := Command {
-			Command: "exited",
-		}
-		s.output <- cmd
+		sendError(s, id, "Process exited.")
 		return
 	}
 	
