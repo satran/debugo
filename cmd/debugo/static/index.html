@@ -26,6 +26,11 @@
 			<td class="linetext textlineno<%- number %>"><%- line %></td>
 		</tr>
 	</script>
+	<script type="text/template" id="tmpl-console">
+		<% if (title !== undefined) { %>
+		<p class="title"><%- title %></p>
+		<% } %>
+	</script>
 	<script type="text/template" id="tmpl-"></script>
 
 	<!-- templates end here -->

@@ -270,6 +270,25 @@ var CommandView = Backbone.View.extend({
 	}
 });
 
+var ConsoleView = Backbone.View.extend({
+	className: "out",
+	template: _.template($("#tmpl-console").html()),
+	
+	initialize: function(options){
+		this.title = options.title;
+		this.content = options.content;
+		this.render();
+	},
+	
+	render: function() {
+		this.$el.html(this.template({title: this.title}));
+		var that = this;
+		_.each(that.content, function(line) {
+			that.$el.append('<p>' + line + '<p>');
+		});
+	}
+});
+
 var App = Backbone.View.extend({
 	el: document,
 	events: {
@@ -303,14 +322,8 @@ var App = Backbone.View.extend({
 	
 	error: function(cmd) {
 		var command = cmd.export();
-		if (command.Command !== undefined && command.Command !== ""){
-			$("#output").append('<div class="out"><p class="title">' + 
-				command.Command + '</p>');
-		}
-		_.each(command.Args, function(arg) {
-			$("#output").append('<p class="error">' + arg + '</p></div>');
-		});
-		
+		var view = new ConsoleView({content: command.Args});
+		$("#output").append(view.el);		
 	}, 
 	
 	paused: function(cmd) {
